@@ -1,0 +1,23 @@
+# Local Terraform directories
+.terraform/
+
+# .tfstate files
+# These are often used to store sensitive information and are specific to each developer's environment.
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files to prevent committing sensitive variables
+*.tfvars
+
+# Ignore override files as they are usually used for local testing
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan files
+*.tfplan
