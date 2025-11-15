@@ -1,0 +1,7 @@
+requests
+google-cloud-storage
+google-cloud-discoveryengine
+google-cloud-aiplatform
+google-generativeai
+
+[dev]

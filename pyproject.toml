@@ -1,0 +1,21 @@
+[project]
+name = "insurance_ai_poc"
+version = "0.1.0"
+description = "A project to explore GCP AI Platform for summarizing public financial documents."
+authors = [
+    { name = "tgrady101" },
+]
+requires-python = ">=3.8"
+dependencies = [
+    # Core data ingestion libraries
+    "requests",
+    "google-cloud-storage",
+    "google-cloud-discoveryengine",
+    
+    # ADK and agent development libraries
+    "google-cloud-aiplatform",
+    "google-generativeai",
+]
+
+[project.optional-dependencies]
+dev = []

@@ -21,3 +21,15 @@ override.tf.json
 
 # Terraform plan files
 *.tfplan
+
+# Python virtual environment
+/venv/
+
+#Downloaded Reports
+/downloaded_reports/
+
+#Chunked Reports
+/chunked_reports/
+
+#Build
+/build/
