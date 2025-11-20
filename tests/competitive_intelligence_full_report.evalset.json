@@ -1,0 +1,178 @@
+{
+  "eval_set_id": "competitive_intelligence_full_report",
+  "name": "Full Report Generation Evaluation Set",
+  "description": "Integration tests for complete competitive intelligence report generation with all specialized agents",
+  "eval_cases": [
+    {
+      "eval_id": "full_quarterly_report",
+      "conversation": [
+        {
+          "invocation_id": "full-001",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Generate a comprehensive competitive intelligence report for The Hartford on the commercial insurance market for Q3 2025"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "# Competitive Intelligence Report: Q3 2025\n\n## Executive Summary\nThis report analyzes the competitive landscape in commercial insurance for Q3 2025.\n\n## Financial Performance\n[Analysis of financial metrics including written premiums, loss ratios, and combined ratios]\n\n## Competitive Positioning\n[Analysis of market share and competitive advantages]\n\n## Strategic Initiatives\n[Analysis of major strategic initiatives]\n\n## Risk Outlook\n[Analysis of emerging risks and exposure]"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "find_latest_quarter",
+                "args": {}
+              },
+              {
+                "name": "validate_data_availability",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              },
+              {
+                "name": "extract_financial_metrics",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              },
+              {
+                "name": "analyze_competitive_positioning",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              },
+              {
+                "name": "track_strategic_initiatives",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              },
+              {
+                "name": "assess_risk_outlook",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "financial_metrics_agent",
+                [
+                  {
+                    "text": "Extracted financial metrics for 7 commercial insurers including written premiums, loss ratios, combined ratios, and underwriting income."
+                  }
+                ]
+              ],
+              [
+                "competitive_positioning_agent",
+                [
+                  {
+                    "text": "Analyzed competitive positioning across major product lines including Workers Compensation, General Liability, and Commercial Property."
+                  }
+                ]
+              ],
+              [
+                "strategic_initiatives_agent",
+                [
+                  {
+                    "text": "Identified key strategic initiatives including digital transformation, specialty lines expansion, and M&A activity."
+                  }
+                ]
+              ],
+              [
+                "risk_outlook_agent",
+                [
+                  {
+                    "text": "Assessed emerging risks including climate change, cyber exposure, and economic inflation impacts on commercial insurance."
+                  }
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "competitive_intelligence",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "specific_competitor_analysis",
+      "conversation": [
+        {
+          "invocation_id": "full-002",
+          "user_content": {
+            "parts": [
+              {
+                "text": "How does The Hartford's Workers Compensation performance compare to Travelers and Chubb in Q3 2025?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Based on Q3 2025 data, here is a comparison of Workers Compensation performance:\n\n**The Hartford (HIG)**\n- Written premiums, loss ratio, combined ratio\n\n**Travelers (TRV)**\n- Written premiums, loss ratio, combined ratio\n\n**Chubb (CB)**\n- Written premiums, loss ratio, combined ratio\n\nKey findings and competitive positioning analysis."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "extract_financial_metrics",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              },
+              {
+                "name": "analyze_competitive_positioning",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "financial_metrics_agent",
+                [
+                  {
+                    "text": "Extracted Workers Compensation metrics for HIG, TRV, and CB from Q3 2025 10-Q filings."
+                  }
+                ]
+              ],
+              [
+                "competitive_positioning_agent",
+                [
+                  {
+                    "text": "Analyzed competitive positioning in Workers Compensation market based on pricing, loss ratios, and market share trends."
+                  }
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "competitive_intelligence",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

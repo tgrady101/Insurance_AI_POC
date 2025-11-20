@@ -1,0 +1,144 @@
+{
+  "eval_set_id": "competitive_intelligence_basic_workflow",
+  "name": "Basic Competitive Intelligence Workflow Tests",
+  "description": "Unit tests for basic data retrieval and validation functions in the competitive intelligence system",
+  "eval_cases": [
+    {
+      "eval_id": "test_find_latest_quarter",
+      "conversation": [
+        {
+          "invocation_id": "basic-001",
+          "user_content": {
+            "parts": [
+              {
+                "text": "What is the latest complete quarter available for analysis?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The latest complete quarter is Q3 2025."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "find_latest_quarter",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "competitive_intelligence",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "test_data_validation",
+      "conversation": [
+        {
+          "invocation_id": "basic-002",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Check if we have complete data for Q3 2025"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Yes, we have complete data for all 7 companies for Q3 2025."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "find_latest_quarter",
+                "args": {}
+              },
+              {
+                "name": "validate_data_availability",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "competitive_intelligence",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "test_financial_metrics_extraction",
+      "conversation": [
+        {
+          "invocation_id": "basic-003",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Extract financial metrics for Commercial Lines insurance for Q3 2025"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Here are the Commercial Lines financial metrics for Q3 2025, including written premiums, loss ratios, combined ratios, and underwriting income for the 7 major insurers."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "find_latest_quarter",
+                "args": {}
+              },
+              {
+                "name": "extract_financial_metrics",
+                "args": {
+                  "year": 2025,
+                  "quarter": 3
+                }
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "financial_metrics_agent",
+                [
+                  {
+                    "text": "I have extracted Commercial segment metrics for 7 companies including written premiums, earned premiums, loss ratios, combined ratios, and underwriting income."
+                  }
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "competitive_intelligence",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

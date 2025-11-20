@@ -8,14 +8,60 @@ authors = [
 requires-python = ">=3.8"
 dependencies = [
     # Core data ingestion libraries
-    "requests",
-    "google-cloud-storage",
-    "google-cloud-discoveryengine",
+    "requests>=2.32.0",
+    "google-cloud-storage>=2.10.0",
+    "google-cloud-discoveryengine>=0.11.0",
+    
+    # HTML/Markdown processing
+    "beautifulsoup4>=4.12.0",
+    "markdownify>=0.11.0",
+    "lxml>=4.9.0",  # BeautifulSoup parser
     
     # ADK and agent development libraries
-    "google-cloud-aiplatform",
-    "google-generativeai",
+    "google-adk>=1.18.0",  # Google Agent Development Kit
+    "google-cloud-aiplatform>=1.38.0",
+    "google-generativeai>=0.3.0",
+    "vertexai>=1.38.0",  # Vertex AI SDK
+    
+    # Observability and tracing (optional)
+    "arize>=7.0.0",  # Arize AX platform SDK
+    "openinference-instrumentation-google-adk>=0.1.6",  # ADK instrumentation
+    "opentelemetry-api==1.37.0",  # Required for google-adk compatibility
+    "opentelemetry-sdk==1.37.0",  # Required for google-adk compatibility
+    "opentelemetry-semantic-conventions==0.58b0",
+    "opentelemetry-instrumentation>=0.58b0",
+    "openinference-instrumentation>=0.1.32",
+    "openinference-semantic-conventions>=0.1.17",
+    
+    # Testing
+    "pytest>=9.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-cov>=4.0.0",  # Coverage reporting
 ]
 
 [project.optional-dependencies]
-dev = []
+dev = [
+    "black>=24.0.0",  # Code formatting
+    "flake8>=7.0.0",  # Linting
+    "mypy>=1.8.0",  # Type checking
+    "ipython>=8.18.0",  # Interactive shell
+    "ipykernel>=6.28.0",  # Jupyter kernel
+]
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

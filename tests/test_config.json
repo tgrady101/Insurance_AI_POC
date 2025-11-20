@@ -1,0 +1,76 @@
+{
+  "criteria": {
+    "tool_trajectory_avg_score": 1.0,
+    "response_match_score": 0.8,
+    "final_response_match_v2": {
+      "enabled": true,
+      "description": "LLM-judged semantic match to reference response"
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "enabled": true,
+      "rubrics": [
+        {
+          "name": "correct_tool_sequence",
+          "description": "Tools are called in the correct logical order",
+          "criteria": "find_latest_quarter must be called before other analysis tools"
+        },
+        {
+          "name": "complete_analysis",
+          "description": "All required analysis tools are called for comprehensive reports",
+          "criteria": "Full reports must call: extract_financial_metrics, analyze_competitive_positioning, track_strategic_initiatives, assess_risk_outlook"
+        },
+        {
+          "name": "no_redundant_calls",
+          "description": "No unnecessary duplicate tool calls",
+          "criteria": "Each tool should be called at most once per quarter analysis"
+        }
+      ]
+    },
+    "rubric_based_final_response_quality_v1": {
+      "enabled": true,
+      "rubrics": [
+        {
+          "name": "commercial_focus",
+          "description": "Response focuses exclusively on Commercial Lines insurance",
+          "criteria": "Must mention Commercial segment explicitly and exclude Personal Lines, Life Insurance"
+        },
+        {
+          "name": "citation_quality",
+          "description": "Response includes proper citations and source references",
+          "criteria": "Must cite sources from 10-K, 10-Q filings or earnings calls with specific references"
+        },
+        {
+          "name": "comprehensive_coverage",
+          "description": "Response covers all major competitive insurers",
+          "criteria": "Must analyze at least 5 of the 7 target companies: HIG, TRV, CB, AIG, PGR, CNA, BRK.B"
+        },
+        {
+          "name": "structured_format",
+          "description": "Response is well-organized with clear sections",
+          "criteria": "Report must include Executive Summary, Financial Performance, Competitive Positioning, Strategic Initiatives, and Risk Outlook sections"
+        },
+        {
+          "name": "actionable_insights",
+          "description": "Response provides actionable competitive intelligence",
+          "criteria": "Must include specific recommendations or insights that can inform business strategy"
+        }
+      ]
+    },
+    "hallucinations_v1": {
+      "enabled": true,
+      "description": "Verify all claims are grounded in source documents from Vertex AI Search"
+    },
+    "safety_v1": {
+      "enabled": true,
+      "description": "Ensure responses are safe and professional"
+    }
+  },
+  "notes": [
+    "These criteria are aligned with ADK evaluation best practices",
+    "tool_trajectory_avg_score=1.0 requires exact tool sequence match",
+    "response_match_score=0.8 allows for small variations in wording",
+    "Rubric-based criteria provide flexible quality assessment",
+    "hallucinations_v1 is critical for ensuring grounding works properly",
+    "Run with: adk eval <agent_module> <test_file> --config_file_path=test_config.json"
+  ]
+}

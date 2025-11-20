@@ -8,8 +8,10 @@ terraform {
 }
 
 provider "google" {
-  project = var.gcp_project_id
-  region  = var.gcp_region
+  project                     = var.gcp_project_id
+  region                      = var.gcp_region
+  user_project_override       = true
+  billing_project             = var.gcp_project_id
 }
 
 # Enable necessary APIs for the project
@@ -49,8 +51,18 @@ resource "google_storage_bucket" "report_bucket" {
   uniform_bucket_level_access = true
 }
 
+# Bucket 3: For test datastore raw document uploads (A/B testing default chunking)
+resource "google_storage_bucket" "test_datastore_bucket" {
+  project       = var.gcp_project_id
+  name          = "${var.gcp_project_id}-test-datastore-bucket"
+  location      = "US"
+  force_destroy = true
+
+  uniform_bucket_level_access = true
+}
+
 # Create the Vertex AI Search Data Store
-resource "google_discovery_engine_data_store" "filings_data_store" {
+resource "google_discovery_engine_data_store" "filings_data_store_full" {
   project           = var.gcp_project_id
   location          = "global"
   data_store_id     = var.data_store_id
@@ -58,6 +70,27 @@ resource "google_discovery_engine_data_store" "filings_data_store" {
   solution_types    = ["SOLUTION_TYPE_SEARCH"]
   content_config    = "CONTENT_REQUIRED"
   industry_vertical = "GENERIC"
+
+  lifecycle {
+    ignore_changes = [document_processing_config]
+  }
+
+  depends_on = [google_project_service.discoveryengine]
+}
+
+# Create the Vertex AI Search Data Store for testing
+resource "google_discovery_engine_data_store" "filings_data_store_testing" {
+  project           = var.gcp_project_id
+  location          = "global"
+  data_store_id     = var.data_store_id_test
+  display_name      = "Insurance Filings Data Store (Test Default Chunking)"
+  solution_types    = ["SOLUTION_TYPE_SEARCH"]
+  content_config    = "CONTENT_REQUIRED"
+  industry_vertical = "GENERIC"
+
+  lifecycle {
+    ignore_changes = [document_processing_config]
+  }
 
   depends_on = [google_project_service.discoveryengine]
 }

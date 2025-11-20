@@ -25,11 +25,24 @@ override.tf.json
 # Python virtual environment
 /venv/
 
+# Environment variables (contains secrets)
+.env
+
 #Downloaded Reports
 /downloaded_reports/
 
 #Chunked Reports
 /chunked_reports/
+
+#Downloaded Earnings Calls
+/downloaded_earnings_calls/
+
+#Chunked Earnings Calls
+/chunked_earnings_calls/
+
+#Generated Reports
+/generated_reports/
+/generated_reports_test/
 
 #Build
 /build/

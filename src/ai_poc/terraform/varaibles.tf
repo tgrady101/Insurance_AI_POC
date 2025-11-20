@@ -12,5 +12,11 @@ variable "gcp_region" {
 variable "data_store_id" {
   type        = string
   description = "A unique ID for the Vertex AI Search data store."
-  default     = "insurance-filings"
+  default     = "insurance-filings-full"
+}
+
+variable "data_store_id_test" {
+  type        = string
+  description = "A unique ID for the Vertex AI Search data store."
+  default     = "insurance-filings-test"
 }
