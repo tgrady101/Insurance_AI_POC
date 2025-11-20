@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+src/ai_poc/__init__.py
+src/ai_poc/workflow_1/scripts/financial_report_ingestion.py
+src/insurance_ai_poc.egg-info/PKG-INFO
+src/insurance_ai_poc.egg-info/SOURCES.txt
+src/insurance_ai_poc.egg-info/dependency_links.txt
+src/insurance_ai_poc.egg-info/requires.txt
+src/insurance_ai_poc.egg-info/top_level.txt
