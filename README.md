@@ -135,14 +135,15 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 - Company-specific segment mapping (e.g., TRV "Business Insurance", AIG dual segments)
 
 ### Financial Metrics Extraction
-**7 Key Metrics** (from 10-Q/10-K segment tables):
-1. Net Written Premiums Growth
-2. Combined Ratio
-3. Loss Ratio  
-4. Expense Ratio
-5. Underwriting Income
-6. Catastrophe Losses
-7. Prior Year Development
+**8 Key Metrics** (from 10-Q/10-K segment tables):
+1. Net Written Premiums (absolute $M)
+2. Net Written Premiums Growth (%)
+3. Net Earned Premiums (absolute $M)
+4. Combined Ratio (%)
+5. Loss Ratio (%)  
+6. Expense Ratio (%)
+7. Underwriting Income ($M)
+8. Catastrophe Losses ($M)
 
 **Data Source Priority** (for metrics table only):
 1. **Primary**: 10-Q/10-K SEC filings (auditable)
@@ -153,7 +154,7 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 | Company | Segment Name | Special Notes |
 |---------|--------------|---------------|
 | **TRV** | Business Insurance | Combined ratio in "Results of Business Insurance" table |
-| **HIG** | Commercial Lines | Cat losses: "Current accident year catastrophe losses and LAE" |
+| **HIG** | Business Insurance | **CRITICAL**: Use "Underwriting Ratios" table (bottom of section) for Combined Ratio from "Three Months Ended" column; DO NOT use "Underlying combined ratio" or calculate manually |
 | **AIG** | North America Commercial | Focus on NA Commercial segment only |
 | **CB** | North America Commercial | Standard segment table |
 | **CNA** | Commercial column | Use "Core income (loss)" as underwriting income |
@@ -167,6 +168,17 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 - Risk exposure analysis
 - 2-3 actionable recommendations for Hartford
 
+### Metadata-Driven Search
+- **Year/Quarter Filtering**: All Vertex AI Search queries include year (number) and quarter (string "Q3") metadata
+- **Query Pattern**: `"{TICKER} {year} Q{quarter} {topic}"` ensures retrieval from correct reporting period
+- **Example**: `"HIG 2025 Q3 business insurance underwriting ratios"` filters to Q3 2025 documents only
+
+### Batched Parallel Processing
+- **Financial Metrics**: Processes companies in batches of 2 using `asyncio.gather()`
+- **Error Isolation**: Each company extraction independent; partial failures don't block others
+- **Timeout**: 10 minutes per company (handles complex multi-search extractions)
+- **Performance**: ~3-5 minutes for 7 companies vs ~15-20 minutes sequential
+
 ### Citation System
 - **Every metric cited**: `[Source: TRV 10-Q Q3 2025, Segment Results - Business Insurance, Page 45]`
 - **Earnings calls**: `[Source: HIG Q3 2025 Earnings Call, CEO commentary]`
@@ -178,8 +190,8 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 
 ### Core AI/ML
 - **Google ADK 1.18.0**: Agent Development Kit for multi-agent orchestration
-- **Vertex AI Gemini 2.5 Pro**: LLM for analysis and generation
-- **Vertex AI Search**: RAG/grounding with semantic search
+- **Vertex AI Gemini 3.0 Pro (Preview)**: LLM for analysis and generation (1M token context)
+- **Vertex AI Search**: RAG/grounding with semantic + hybrid search
 - **text-embedding-004**: Document embeddings
 
 ### Google Cloud Platform
@@ -383,9 +395,14 @@ Generated reports include:
 ### Commercial Segment Financial Performance Table
 | Metric | HIG | TRV | CB | BRK.B | AIG | CNA | WRB |
 |--------|-----|-----|-------|-------|-----|-----|-----|
-| Net Written Premiums Growth | 9% | 3.0% | 2.9% | 3.9% | 6.0% | 3.0% | N/A |
-| Combined Ratio | 89.4% | 92.9% | 92.7% | 90.8% | 88.3% | 92.7% | 91.6% |
-| ... | ... | ... | ... | ... | ... | ... | ... |
+| Net Written Premiums ($M) | $3,040 | $5,675 | $5,663 | $5,273 | $2,435 | N/A | $2,810 |
+| Net Written Premiums Growth | 9% | 2.9% | 3.0% | 3.9% | 7.0% | 12% | 5.1% |
+| Net Earned Premiums ($M) | $3,010 | $5,658 | $5,500 | N/A | $2,400 | N/A | $2,750 |
+| Combined Ratio | 88.8% | 92.9% | 81.5% | 89.3% | 82.6% | 90.9% | 92.3% |
+| Loss Ratio | 56.9% | 63.3% | 60.7% | 60.3% | 59.3% | 64.8% | 63.9% |
+| Expense Ratio | 31.9% | 29.6% | 20.8% | 29.0% | 23.3% | N/A | 28.4% |
+| Underwriting Income ($M) | $366 | $402 | $941 | $506 | $384 | N/A | $213.5 |
+| Catastrophe Losses ($M) | $39 | $139 | N/A | N/A | $68 | $57 | $70 |
 
 ### Competitive Position Analysis
 - Hartford's rank among peers
@@ -474,10 +491,11 @@ See `PARALLEL_PROCESSING.md` for implementation details and performance benchmar
 ## 📝 Known Limitations
 
 1. **BRK.B Competitive Positioning**: Excluded from earnings call analysis (no transcripts available)
-2. **Metric Availability**: Some companies don't disclose all 7 metrics (marked as "Not Disclosed")
+2. **Metric Availability**: Some companies don't disclose all 8 metrics (marked as "Not Disclosed")
 3. **AIG Complexity**: Dual-segment reporting requires special handling
 4. **Historical Data**: Limited to Q1 2023 - Q3 2025 (expandable)
-5. **JSON Parsing**: Agents occasionally return non-JSON responses (improved error handling added)
+5. **Model Availability**: Gemini 3 Pro preview requires project/region enablement; fallback to Gemini 1.5 Pro if unavailable
+6. **JSON Parsing**: Robust extraction finds JSON even when models add preamble text (e.g., "The commercial segment for...")
 
 ---
 
