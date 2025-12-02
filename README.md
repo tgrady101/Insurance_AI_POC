@@ -79,12 +79,6 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
                                                │
                                                ▼
                                       ┌──────────────────┐
-                                      │  Embeddings      │
-                                      │text-embedding-004│
-                                      └────────┬─────────┘
-                                               │
-                                               ▼
-                                      ┌──────────────────┐
                                       │ GCS Upload       │
                                       │ JSON w/metadata  │
                                       └────────┬─────────┘
@@ -192,7 +186,7 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 - **Google ADK 1.18.0**: Agent Development Kit for multi-agent orchestration
 - **Vertex AI Gemini 3.0 Pro (Preview)**: LLM for analysis and generation (1M token context)
 - **Vertex AI Search**: RAG/grounding with semantic + hybrid search
-- **text-embedding-004**: Document embeddings
+- **Vertex AI Search**: Automatic embedding generation during import
 
 ### Google Cloud Platform
 - **Vertex AI Agent Builder**: Agent runtime environment
@@ -317,8 +311,7 @@ python src/ai_poc/workflow_1/scripts/financial_report_ingestion.py
 - Downloads 10-K/10-Q from SEC EDGAR
 - Converts HTML → Markdown
 - Chunks into 8KB segments with 200 char overlap
-- Generates embeddings (text-embedding-004)
-- Uploads to GCS and Vertex AI Search
+- Uploads to Vertex AI Search (embeddings generated automatically)
 
 **Step 2: Download & Process Earnings Calls**
 ```bash
@@ -326,8 +319,7 @@ python src/ai_poc/workflow_1/scripts/earnings_call_ingestion.py
 ```
 - Downloads transcripts from API Ninjas
 - Chunks transcripts (8KB, 200 overlap)
-- Generates embeddings
-- Uploads to Vertex AI Search
+- Uploads to Vertex AI Search (embeddings generated automatically)
 
 **Expected Output**:
 - 177 SEC documents → ~3,000-5,000 chunks

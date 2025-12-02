@@ -11,7 +11,7 @@ Observability:
 from typing import Any
 import json
 import os
-from google.adk.tools import FunctionTool
+from google.adk.tools.function_tool import FunctionTool
 
 # Initialize Arize AX tracing if credentials are available
 try:

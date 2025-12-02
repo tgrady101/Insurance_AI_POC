@@ -22,61 +22,10 @@ CHUNKED_DIR = "chunked_reports"
 MAX_CHUNK_SIZE = 8000  # Characters per chunk for optimal AI context
 CHUNK_OVERLAP = 200    # Character overlap between chunks for context continuity
 
-# Embedding configuration
-USE_EMBEDDINGS = True  # Set to True to generate embeddings
-EMBEDDING_MODEL = "text-embedding-004"  # Latest Vertex AI embedding model
-EMBEDDING_BATCH_SIZE = 5  # Process embeddings in batches (API limit is 5)
-EMBEDDING_LOCATION = "us-central1"  # Embeddings API requires a region
+# Note: Vertex AI Search automatically generates embeddings during document import.
+# Manual embedding generation is not supported and not needed.
 
 # --- Helper Functions ---
-
-def generate_embeddings(texts, model_name=EMBEDDING_MODEL):
-    """
-    Generate embeddings for a list of texts using Vertex AI.
-    Returns a list of embedding vectors.
-    """
-    if not USE_EMBEDDINGS or not texts:
-        return None
-    
-    try:
-        # Import new google-genai SDK
-        from google import genai
-        from google.genai.types import EmbedContentConfig
-        
-        # Initialize client with Vertex AI
-        client = genai.Client(
-            vertexai=True,
-            project=GCP_PROJECT_ID,
-            location=EMBEDDING_LOCATION
-        )
-        
-        # Generate embeddings in batches
-        embeddings = []
-        for i in range(0, len(texts), EMBEDDING_BATCH_SIZE):
-            batch = texts[i:i + EMBEDDING_BATCH_SIZE]
-            # Truncate texts to ~2048 tokens (~8000 chars) to avoid API limits
-            batch_truncated = [text[:8000] for text in batch]
-            
-            # Generate embeddings for each text in batch
-            for text in batch_truncated:
-                response = client.models.embed_content(
-                    model=model_name,
-                    contents=text,
-                    config=EmbedContentConfig(
-                        task_type="RETRIEVAL_DOCUMENT"
-                    )
-                )
-                embeddings.append(response.embeddings[0].values)
-            
-            # Progress indicator
-            if (i + EMBEDDING_BATCH_SIZE) % 50 == 0:
-                print(f"  -> Generated embeddings for {min(i + EMBEDDING_BATCH_SIZE, len(texts))}/{len(texts)} chunks")
-        
-        print(f"  -> Generated {len(embeddings)} embeddings")
-        return embeddings
-    except Exception as e:
-        print(f"  Warning: Failed to generate embeddings: {e}")
-        return None
 
 def sanitize_document_id(doc_id):
     """
@@ -208,7 +157,10 @@ def fetch_company_reports(company_info, start_year):
     return saved_files
 
 def chunk_documents(local_file_paths):
-    """Chunks HTML files, generates embeddings, saves to disk, and converts to Document objects for import."""
+    """Chunks HTML files, saves to disk, and converts to Document objects for import.
+    
+    Note: Vertex AI Search automatically generates embeddings during import.
+    """
     print("\n--- Step 2: Chunking Documents ---")
     
     all_chunks = []
@@ -222,21 +174,13 @@ def chunk_documents(local_file_paths):
     
     print(f"  -> Total chunks created: {len(all_chunks)}")
     
-    # Generate embeddings if enabled
-    embeddings = None
-    if USE_EMBEDDINGS:
-        print(f"\n--- Generating Embeddings for {len(all_chunks)} Chunks ---")
-        # Extract content text from chunks for embedding
-        chunk_texts = [chunk.content.raw_bytes.decode('utf-8') for chunk in all_chunks]
-        embeddings = generate_embeddings(chunk_texts)
-    
     # Save chunks to disk
     os.makedirs(CHUNKED_DIR, exist_ok=True)
     chunk_file = os.path.join(CHUNKED_DIR, f"chunks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
     
     # Convert Document objects to serializable format for saving
     chunks_data = []
-    for idx, chunk in enumerate(all_chunks):
+    for chunk in all_chunks:
         chunk_dict = {
             "id": chunk.id,
             "struct_data": dict(chunk.struct_data),
@@ -245,10 +189,6 @@ def chunk_documents(local_file_paths):
                 "raw_bytes": chunk.content.raw_bytes.decode('utf-8') if chunk.content.raw_bytes else ""
             }
         }
-        # Add embedding if available
-        if embeddings and idx < len(embeddings):
-            chunk_dict["embedding"] = embeddings[idx]
-        
         chunks_data.append(chunk_dict)
     
     with open(chunk_file, 'w', encoding='utf-8') as f:
@@ -259,7 +199,10 @@ def chunk_documents(local_file_paths):
     return chunk_file
 
 def load_chunks_from_file(chunk_file):
-    """Loads chunks from JSON file and converts to Document objects with embeddings."""
+    """Loads chunks from JSON file and converts to Document objects.
+    
+    Note: Vertex AI Search automatically generates embeddings during import.
+    """
     print(f"\n--- Loading Chunks from {os.path.basename(chunk_file)} ---")
     
     with open(chunk_file, 'r', encoding='utf-8') as f:
@@ -276,20 +219,9 @@ def load_chunks_from_file(chunk_file):
                 raw_bytes=chunk_data["content"]["raw_bytes"].encode('utf-8')
             )
         )
-        
-        # Add embedding if present
-        if "embedding" in chunk_data and chunk_data["embedding"]:
-            doc.derived_struct_data = {
-                "embedding": chunk_data["embedding"]
-            }
-        
         document_chunks.append(doc)
     
     print(f"  -> Loaded {len(document_chunks)} chunks from file")
-    if any("embedding" in chunk_data for chunk_data in chunks_data):
-        print(f"  -> Embeddings included: Yes")
-    else:
-        print(f"  -> Embeddings included: No")
     
     return document_chunks
 
