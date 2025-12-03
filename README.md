@@ -523,10 +523,4 @@ This is a proof-of-concept project. For questions or suggestions:
 
 ---
 
-## 📄 License
-
-MIT License - See LICENSE file for details
-
----
-
 **Built with** ❤️ **using Google Cloud Agent Development Kit and Vertex AI**
