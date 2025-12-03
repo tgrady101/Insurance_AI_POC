@@ -30,7 +30,7 @@ This system generates comprehensive quarterly competitive intelligence reports f
 
 ### Multi-Agent System (Google ADK)
 
-The system uses a **Root Orchestrator** with 5 specialized agents:
+The system uses a **Root Orchestrator** with 4 specialized agents:
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -41,21 +41,24 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
                 │
         ┌───────┴────────┐
         │  FunctionTools  │
+        │  (tools.py)     │
+        │  - Find quarter │
+        │  - Validate data│
         └───────┬────────┘
                 │
-    ┌───────────┼───────────┬───────────┬──────────┐
-    ▼           ▼           ▼           ▼          ▼
-┌─────────┐ ┌──────┐ ┌──────────┐ ┌─────────┐ ┌─────┐
-│Utility  │ │Finan-│ │Competi-  │ │Strategic│ │Risk │
-│Agent    │ │cial  │ │tive      │ │Initia-  │ │Out- │
-│         │ │Metrics│ │Position- │ │tives    │ │look │
-│-Find    │ │Agent │ │ing Agent │ │Agent    │ │Agent│
-│ quarter │ │      │ │          │ │         │ │     │
-│-Validate│ │-Extract│ │-Market  │ │-M&A     │ │-Risks│
-│ data    │ │ metrics│ │ share   │ │-Digital │ │-Expo-│
-│         │ │-Company│ │-Strengths│ │-Product │ │ sures│
-│         │ │ compare│ │ & gaps  │ │-Org     │ │     │
-└─────────┘ └──────┘ └──────────┘ └─────────┘ └─────┘
+    ┌───────────┼───────────┬───────────┐
+    ▼           ▼           ▼           ▼
+┌──────┐ ┌──────────┐ ┌─────────┐ ┌─────┐
+│Finan-│ │Competi-  │ │Strategic│ │Risk │
+│cial  │ │tive      │ │Initia-  │ │Out- │
+│Metrics│ │Position- │ │tives    │ │look │
+│Agent │ │ing Agent │ │Agent    │ │Agent│
+│      │ │          │ │         │ │     │
+│-Extract│ │-Market  │ │-M&A     │ │-Risks│
+│ metrics│ │ share   │ │-Digital │ │-Expo-│
+│-Company│ │-Strengths│ │-Product │ │ sures│
+│ compare│ │ & gaps  │ │-Org     │ │     │
+└──────┘ └──────────┘ └─────────┘ └─────┘
 ```
 
 ### Data Pipeline
@@ -96,26 +99,28 @@ The system uses a **Root Orchestrator** with 5 specialized agents:
 ```
 1. Root Agent receives request (ticker, quarter, year)
    │
-2. Call utility_agent.find_latest_quarter()
+2. Call FindLatestQuarterTool (tools.py)
+   │  └─▶ Auto-detect most recent quarter with complete data
    │
-3. Call utility_agent.validate_data_availability()
+3. Call ValidateDataTool (tools.py)
+   │  └─▶ Check SEC filings & earnings calls available
    │
-4. Call financial_metrics.extract_all_companies()
+4. Call FinancialMetricsTool → financial_metrics_agent
    │  └─▶ Extract 7 key metrics from 10-Q segment tables
    │      (Prioritize SEC filings > earnings calls)
    │
-5. Call competitive_positioning.analyze_positioning()
+5. Call CompetitivePositioningTool → competitive_positioning_agent
    │  └─▶ Analyze Hartford vs peers using earnings calls
    │
-6. Call strategic_initiatives.analyze_initiatives()
+6. Call StrategicInitiativesTool → strategic_initiatives_agent
    │  └─▶ Extract M&A, digital, product initiatives
    │
-7. Call risk_outlook.assess_risks()
+7. Call RiskOutlookTool → risk_outlook_agent
    │  └─▶ Identify commercial segment risks
    │
 8. Root Agent synthesizes all outputs
    │
-9. Generate Markdown report with citations
+9. Generate Markdown/HTML report with citations
    └─▶ Save to generated_reports/
 ```
 
@@ -220,12 +225,12 @@ Insurance_AI_POC/
 ├── src/ai_poc/workflow_1/
 │   ├── agents/
 │   │   ├── root_agent.py              # Orchestrator
-│   │   ├── utility_agent.py           # Data validation
+│   │   ├── tools.py                   # FunctionTools + utility functions
+│   │   │                              # (quarter detection, data validation)
 │   │   ├── financial_metrics_agent.py # Metrics extraction
 │   │   ├── competitive_positioning_agent.py
 │   │   ├── strategic_initiatives_agent.py
 │   │   ├── risk_outlook_agent.py
-│   │   ├── tools.py                   # FunctionTools wrapper
 │   │   └── config.py                  # GCP config
 │   ├── scripts/
 │   │   ├── financial_report_ingestion.py  # 10-K/10-Q pipeline
@@ -453,7 +458,8 @@ Generated reports include:
 
 ### 3. Multi-Agent Architecture
 **Why**: Specialization improves accuracy and maintainability.
-- Each agent has focused expertise
+- 4 specialized agents (Financial, Competitive, Strategic, Risk)
+- Utility functions (quarter detection, validation) consolidated in `tools.py`
 - Root agent orchestrates and synthesizes
 - Easier to debug and enhance individual components
 

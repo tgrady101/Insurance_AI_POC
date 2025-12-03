@@ -13,8 +13,7 @@ SEARCH_ENGINE_ID = "insurance-poc_1763083298659"
 
 # Model Configuration
 DEFAULT_MODEL = "gemini-3-pro-preview"  # 1M token context for comprehensive analysis
-FAST_MODEL = "gemini-2.5-flash"   # Faster for simple queries
-TEMPERATURE = 0.1  # Low temperature for factual accuracy
+TEMPERATURE = 1.0  # Default for Gemini 3 (optimized for reasoning)
 
 # Request Configuration
 REQUEST_TIMEOUT = 600  # 10 minutes timeout for full report generation (includes all specialized agents)

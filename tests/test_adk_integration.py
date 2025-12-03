@@ -49,8 +49,7 @@ from ai_poc.workflow_1.agents import (
     FinancialMetricsAgent,
     CompetitivePositioningAgent,
     StrategicInitiativesAgent,
-    RiskOutlookAgent,
-    UtilityAgent
+    RiskOutlookAgent
 )
 from ai_poc.workflow_1.agents.tools import (
     find_latest_quarter,
@@ -121,12 +120,6 @@ def strategic_agent():
 def risk_agent():
     """Initialize Risk Outlook Agent."""
     return RiskOutlookAgent()
-
-
-@pytest.fixture(scope="module")
-def data_agent():
-    """Initialize Data Retrieval Agent."""
-    return UtilityAgent()
 
 
 @pytest.fixture(scope="module")
