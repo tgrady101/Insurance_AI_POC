@@ -523,4 +523,3 @@ This is a proof-of-concept project. For questions or suggestions:
 
 ---
 
-**Built with** ❤️ **using Google Cloud Agent Development Kit and Vertex AI**
