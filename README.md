@@ -520,7 +520,3 @@ This is a proof-of-concept project. For questions or suggestions:
 1. Open an issue on GitHub
 2. Submit a pull request with improvements
 3. Contact: tgrady101
-
----
-
-**Built with** ❤️ **using Google Cloud Agent Development Kit and Vertex AI**
