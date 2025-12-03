@@ -14,8 +14,8 @@ graph TB
     Tools --> T5[StrategicInitiativesTool]
     Tools --> T6[RiskOutlookTool]
     
-    T1 --> UtilityAgent[Utility Agent]
-    T2 --> UtilityAgent
+    T1 --> UtilFn[Utility Functions<br/>in tools.py]
+    T2 --> UtilFn
     T3 --> FinAgent[Financial Metrics Agent]
     T4 --> CompAgent[Competitive Positioning Agent]
     T5 --> StratAgent[Strategic Initiatives Agent]
@@ -182,7 +182,7 @@ sequenceDiagram
     participant User
     participant RootAgent as Root Agent<br/>(Orchestrator)
     participant Tools as ADK Tools
-    participant Util as Utility Agent
+    participant Util as Utility Functions<br/>(tools.py)
     participant Fin as Financial Agent
     participant Comp as Competitive Agent
     participant Strat as Strategic Agent
@@ -260,7 +260,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     subgraph "Root Agent Layer"
-        Root[Root Agent<br/>Gemini 1.5 Pro]
+        Root[Root Agent<br/>Gemini 3 Pro]
     end
     
     subgraph "Tool Layer (ADK FunctionTools)"
@@ -273,11 +273,11 @@ graph LR
     end
     
     subgraph "Specialized Agent Layer"
-        U[Utility Agent<br/>Data Validation]
-        F[Financial Agent<br/>Gemini 1.5 Pro<br/>+ Vertex AI Search]
-        C[Competitive Agent<br/>Gemini 1.5 Pro<br/>+ Vertex AI Search]
-        S[Strategic Agent<br/>Gemini 1.5 Pro<br/>+ Vertex AI Search]
-        R[Risk Agent<br/>Gemini 1.5 Pro<br/>+ Vertex AI Search]
+        U[Utility Functions<br/>Data Validation<br/>in tools.py]
+        F[Financial Agent<br/>Gemini 3 Pro<br/>+ Vertex AI Search]
+        C[Competitive Agent<br/>Gemini 3 Pro<br/>+ Vertex AI Search]
+        S[Strategic Agent<br/>Gemini 3 Pro<br/>+ Vertex AI Search]
+        R[Risk Agent<br/>Gemini 3 Pro<br/>+ Vertex AI Search]
     end
     
     subgraph "Data Layer"

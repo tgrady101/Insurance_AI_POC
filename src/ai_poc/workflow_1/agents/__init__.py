@@ -14,7 +14,6 @@ from .tools import (
     StrategicInitiativesTool,
     RiskOutlookTool
 )
-from .utility_agent import UtilityAgent
 from .financial_metrics_agent import FinancialMetricsAgent
 from .competitive_positioning_agent import CompetitivePositioningAgent
 from .strategic_initiatives_agent import StrategicInitiativesAgent
@@ -29,7 +28,6 @@ __all__ = [
     'CompetitivePositioningTool',
     'StrategicInitiativesTool',
     'RiskOutlookTool',
-    'UtilityAgent',
     'FinancialMetricsAgent',
     'CompetitivePositioningAgent',
     'StrategicInitiativesAgent',

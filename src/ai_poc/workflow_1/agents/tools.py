@@ -4,14 +4,20 @@ ADK Tools for Competitive Intelligence Analysis
 These tools wrap the specialized analysis agents as ADK FunctionTools,
 allowing the root LlmAgent to use them.
 
+Includes utility functions for:
+- Quarter detection (finding latest complete quarter)
+- Data availability validation
+
 Observability:
 - Integrated with Arize AX for automatic tracing of all tool executions
 """
 
-from typing import Any
+from typing import Any, Dict, Tuple
 import json
 import os
+from datetime import datetime
 from google.adk.tools.function_tool import FunctionTool
+from google.cloud import discoveryengine_v1 as discoveryengine
 
 # Initialize Arize AX tracing if credentials are available
 try:
@@ -22,18 +28,172 @@ except ImportError:
     _tracer = None
     pass  # Tracing is optional
 
-# Import the specialized agents
-from .utility_agent import UtilityAgent
+# Import config and specialized agents
+from .config import (
+    GCP_PROJECT_ID,
+    DATA_STORE_ID,
+    DATA_STORE_LOCATION,
+    COMPANIES
+)
 from .financial_metrics_agent import FinancialMetricsAgent
 from .competitive_positioning_agent import CompetitivePositioningAgent
 from .strategic_initiatives_agent import StrategicInitiativesAgent
 from .risk_outlook_agent import RiskOutlookAgent
 
 
-# Initialize the specialized agents globally (shared across tool calls)
-# Note: UtilityAgent is only used for utility functions (quarter detection, validation)
-# Document retrieval is handled by Vertex AI Search grounding in each agent's LLM
-_data_agent = UtilityAgent()
+# =============================================================================
+# Utility Functions (formerly in UtilityAgent)
+# =============================================================================
+
+# Initialize Vertex AI Search client for validation queries
+_search_client = discoveryengine.SearchServiceClient()
+_serving_config = (
+    f"projects/{GCP_PROJECT_ID}/locations/{DATA_STORE_LOCATION}/"
+    f"collections/default_collection/dataStores/{DATA_STORE_ID}/"
+    f"servingConfigs/default_config"
+)
+
+
+def _check_documents_exist(query: str, max_results: int = 3) -> bool:
+    """
+    Simple check if documents exist for a query (used for validation).
+    
+    Args:
+        query: Search query string
+        max_results: Number of results to check
+    
+    Returns:
+        True if any documents found, False otherwise
+    """
+    request = discoveryengine.SearchRequest(
+        serving_config=_serving_config,
+        query=query,
+        page_size=max_results,
+    )
+    
+    try:
+        response = _search_client.search(request)
+        return len(list(response.results)) > 0
+    except Exception as e:
+        print(f"⚠️  Validation check error: {e}")
+        return False
+
+
+def _validate_data_for_quarter(year: int, quarter: int) -> Dict[str, Dict]:
+    """
+    Validate that required documents are available for all companies.
+    
+    Args:
+        year: Target year
+        quarter: Target quarter (1-4)
+    
+    Returns:
+        Dictionary mapping ticker to availability status
+    """
+    print(f"\n📋 Validating data availability for Q{quarter} {year}...")
+    
+    availability = {}
+    
+    for company in COMPANIES:
+        ticker = company["ticker"]
+        has_earnings = company["has_earnings_calls"]
+        
+        # Check for SEC filing (10-K or 10-Q)
+        filing_type = "10-K" if quarter == 4 else "10-Q"
+        sec_query = f"{ticker} {filing_type} {year} Q{quarter}"
+        has_sec_filing = _check_documents_exist(sec_query)
+        
+        # Check for earnings call (if applicable)
+        has_earnings_call = False
+        if has_earnings:
+            earnings_query = f"{ticker} earnings call {year} Q{quarter}"
+            has_earnings_call = _check_documents_exist(earnings_query)
+        
+        # Determine completeness
+        missing = []
+        if not has_sec_filing:
+            missing.append("SEC filing")
+        if has_earnings and not has_earnings_call:
+            missing.append("earnings call")
+        
+        complete = len(missing) == 0
+        
+        availability[ticker] = {
+            "complete": complete,
+            "sec_filing": has_sec_filing,
+            "earnings_call": has_earnings_call if has_earnings else None,
+            "requires_earnings_call": has_earnings,
+            "missing": missing
+        }
+        
+        status = "✓" if complete else "✗"
+        print(f"  {status} {ticker}: {', '.join(missing) if missing else 'Complete'}")
+    
+    complete_count = sum(1 for v in availability.values() if v["complete"])
+    print(f"\n  Summary: {complete_count}/{len(COMPANIES)} companies complete")
+    
+    return availability
+
+
+def _find_latest_complete_quarter() -> Tuple[int, int]:
+    """
+    Find the most recent quarter with complete data for all companies.
+    
+    Returns:
+        Tuple of (year, quarter)
+    """
+    print("\n🔍 Finding latest complete quarter...")
+    
+    current_date = datetime.now()
+    current_year = current_date.year
+    current_month = current_date.month
+    
+    # Determine the most recent COMPLETED quarter
+    if current_month >= 11:  # November or December - Q3 complete
+        latest_complete_quarter = 3
+        latest_complete_year = current_year
+    elif current_month >= 8:  # August-October - Q2 complete
+        latest_complete_quarter = 2
+        latest_complete_year = current_year
+    elif current_month >= 5:  # May-July - Q1 complete
+        latest_complete_quarter = 1
+        latest_complete_year = current_year
+    else:  # January-April - Q4 of previous year complete
+        latest_complete_quarter = 4
+        latest_complete_year = current_year - 1
+    
+    print(f"  Current date: {current_date.strftime('%B %d, %Y')}")
+    print(f"  Latest complete quarter should be: Q{latest_complete_quarter} {latest_complete_year}")
+    
+    # Check from latest complete quarter, go back up to 8 quarters
+    check_year = latest_complete_year
+    check_quarter = latest_complete_quarter
+    
+    for i in range(8):
+        print(f"\n  Checking Q{check_quarter} {check_year}...")
+        availability = _validate_data_for_quarter(check_year, check_quarter)
+        
+        complete_count = sum(1 for v in availability.values() if v["complete"])
+        
+        if complete_count == len(COMPANIES):
+            print(f"\n✓ Latest complete quarter: Q{check_quarter} {check_year}")
+            return check_year, check_quarter
+        
+        # Move to previous quarter
+        check_quarter -= 1
+        if check_quarter < 1:
+            check_quarter = 4
+            check_year -= 1
+    
+    # Default to the latest complete quarter if no data found
+    print(f"\n⚠️  No complete quarter found, defaulting to Q{latest_complete_quarter} {latest_complete_year}")
+    return latest_complete_year, latest_complete_quarter
+
+
+# =============================================================================
+# Specialized Agents
+# =============================================================================
+
 _financial_agent = FinancialMetricsAgent()
 _competitive_agent = CompetitivePositioningAgent()
 _strategic_agent = StrategicInitiativesAgent()
@@ -48,7 +208,7 @@ def find_latest_quarter() -> dict[str, Any]:
         Dictionary with 'year' (int), 'quarter' (int), 'status' (str), and 'message' (str).
         Example: {'year': 2024, 'quarter': 3, 'status': 'complete', 'message': '...'}
     """
-    year, quarter = _data_agent.find_latest_complete_quarter()
+    year, quarter = _find_latest_complete_quarter()
     return {
         "year": year,
         "quarter": quarter,
@@ -102,7 +262,7 @@ def validate_data_availability(year: int, quarter: int) -> dict[str, Any]:
             "status": "Future quarter - no data available"
         }
     
-    availability = _data_agent.validate_data_availability(year, quarter)
+    availability = _validate_data_for_quarter(year, quarter)
     
     # Format results - use simple strings for better ADK compatibility
     complete_count = sum(1 for status in availability.values() if status['complete'])
