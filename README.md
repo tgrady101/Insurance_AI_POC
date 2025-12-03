@@ -521,5 +521,3 @@ This is a proof-of-concept project. For questions or suggestions:
 2. Submit a pull request with improvements
 3. Contact: tgrady101
 
----
-
