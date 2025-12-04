@@ -32,7 +32,7 @@ OUTPUT_DIR = "downloaded_earnings_calls"
 CHUNKED_DIR = "chunked_earnings_calls"
 
 # Chunking configuration
-MAX_CHUNK_SIZE = 8000  # Characters per chunk for optimal AI context
+MAX_CHUNK_SIZE = 2000  # Characters per chunk for optimal AI context
 CHUNK_OVERLAP = 200    # Character overlap between chunks for context continuity
 
 # Note: Vertex AI Search automatically generates embeddings during document import.
