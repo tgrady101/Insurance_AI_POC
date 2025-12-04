@@ -239,7 +239,7 @@ Insurance_AI_POC/
 │   └── arize_tracing/
 │       └── arize_config.py            # Observability setup
 ├── tests/
-│   ├── test_adk_integration.py        # Agent tests (30 tests)
+│   ├── test_adk_integration.py        # Agent tests (27 tests, 9 classes)
 │   └── pytest.ini                     # Test configuration
 ├── downloaded_reports/                # Raw 10-K/10-Q HTML files
 ├── downloaded_earnings_calls/         # Raw earnings transcripts (TXT)
@@ -323,7 +323,7 @@ python src/ai_poc/workflow_1/scripts/financial_report_ingestion.py
 python src/ai_poc/workflow_1/scripts/earnings_call_ingestion.py
 ```
 - Downloads transcripts from API Ninjas
-- Chunks transcripts (8KB, 200 overlap)
+- Chunks transcripts (2KB chunks, 200 char overlap)
 - Uploads to Vertex AI Search (embeddings generated automatically)
 
 **Expected Output**:
@@ -426,18 +426,21 @@ Generated reports include:
 
 ## 🧪 Testing
 
-**Test Suite**: 30 tests across 6 test classes
+**Test Suite**: 27 tests across 9 test classes
 
 ### Test Categories
 1. **Tool Trajectory**: Latest quarter detection, data validation
 2. **Grounding Configuration**: Vertex AI Search connectivity
-3. **Individual Tools**: Each agent tested independently
+3. **Tool Functions**: Each agent tool tested independently
 4. **Root Agent Integration**: Full workflow with mocked data
 5. **Full Report Generation**: End-to-end Q3 2025 report (slow test)
-6. **Arize Tracing**: Observability validation
+6. **Commercial Segment Focus**: Validates commercial-only filtering
+7. **Arize Tracing**: Observability validation
+8. **Error Handling**: Invalid inputs, missing data scenarios
+9. **Performance**: Timing benchmarks for operations
 
 ### Test Execution Time
-- **Fast tests** (~30 tests): 2-5 minutes
+- **Fast tests** (~25 tests): 2-5 minutes
 - **Full report generation**: 4-10 minutes
 - **Total suite**: ~15 minutes
 
@@ -469,11 +472,11 @@ Generated reports include:
 - Automatic grounding reduces hallucination
 - Citations provided automatically
 
-### 5. 8KB Chunk Size with 200 Overlap
-**Why**: Balance between context and granularity.
-- Large enough for segment tables
-- Small enough for focused retrieval
-- Overlap prevents information loss at boundaries
+### 5. Chunk Size Strategy with 200 Overlap
+**Why**: Different document types benefit from different chunk sizes.
+- **SEC filings (8KB)**: Large enough for segment tables and financial statements
+- **Earnings calls (2KB)**: Smaller chunks preserve speaker context and Q&A structure
+- **200 char overlap**: Prevents information loss at boundaries for both types
 
 ### 6. Parallel Processing for Company Analysis
 **Why**: Significant performance improvement with independent company data.

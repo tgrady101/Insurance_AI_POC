@@ -58,7 +58,7 @@ graph TB
         Parse1[Parse HTML<br/>Extract by Item sections]
         Parse2[Parse Transcripts<br/>Speaker-aware chunking]
         Chunk1[Create Chunks<br/>8000 chars + 200 overlap]
-        Chunk2[Create Chunks<br/>8000 chars + 200 overlap]
+        Chunk2[Create Chunks<br/>2000 chars + 200 overlap]
         Embed1[Generate Embeddings<br/>text-embedding-004]
         Embed2[Generate Embeddings<br/>text-embedding-004]
         Save1[Save to JSON<br/>chunked_reports/]
@@ -157,7 +157,7 @@ sequenceDiagram
         Parser->>Parser: Identify speakers & roles
         Parser-->>ECScript: Speaker-aware sections
         
-        ECScript->>Chunker: Chunk by speaker (max 8000 chars)
+        ECScript->>Chunker: Chunk by speaker (max 2000 chars)
         Chunker->>Chunker: Preserve speaker context
         Chunker->>Chunker: Add metadata (ticker, quarter, speaker)
         Chunker-->>ECScript: Document chunks
@@ -362,7 +362,7 @@ graph LR
         EARN1[Transcript TXT] --> EARN2[Parse by speaker]
         EARN2 --> EARN3[Identify speakers:<br/>CEO, CFO, Analysts<br/>Role & Company]
         EARN3 --> EARN4[Preserve speaker context]
-        EARN4 --> EARN5[Split into 8KB chunks<br/>200 char overlap]
+        EARN4 --> EARN5[Split into 2KB chunks<br/>200 char overlap]
         EARN5 --> EARN6[Add metadata:<br/>ticker, quarter, year, speaker]
     end
     
@@ -515,7 +515,8 @@ stateDiagram-v2
 - **Update Frequency**: Quarterly (post earnings releases)
 
 ### Chunking Strategy
-- **Chunk Size**: 8,000 characters (optimal for LLM context window)
+- **SEC Filings Chunk Size**: 8,000 characters (optimal for segment tables and financial statements)
+- **Earnings Calls Chunk Size**: 2,000 characters (preserves speaker context and Q&A structure)
 - **Overlap**: 200 characters (maintains context continuity)
 - **SEC Filings**: Chunked by Item sections (preserves document structure)
 - **Earnings Calls**: Chunked by speaker segments (preserves speaker context)
