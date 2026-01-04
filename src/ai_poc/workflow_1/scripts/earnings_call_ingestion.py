@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import storage
 import re
+import google.generativeai as genai
 
 # Load environment variables from .env file
 # Script is at: src/ai_poc/workflow_1/scripts/earnings_call_ingestion.py
@@ -31,9 +32,102 @@ DATA_STORE_LOCATION = "global"
 OUTPUT_DIR = "downloaded_earnings_calls"
 CHUNKED_DIR = "chunked_earnings_calls"
 
-# Chunking configuration
-MAX_CHUNK_SIZE = 2000  # Characters per chunk for optimal AI context
-CHUNK_OVERLAP = 200    # Character overlap between chunks for context continuity
+# Chunking configuration (token-based using Gemini tokenizer)
+MAX_CHUNK_TOKENS = 350     # Target tokens per chunk for optimal AI context
+CHUNK_OVERLAP_TOKENS = 50  # Token overlap between chunks for context continuity
+
+# Initialize Gemini model for tokenization
+# Using gemini-1.5-flash as it's lightweight and has the same tokenizer
+_tokenizer_model = None
+
+def get_tokenizer():
+    """Get or initialize the Gemini tokenizer model."""
+    global _tokenizer_model
+    if _tokenizer_model is None:
+        # Configure the API (uses GOOGLE_API_KEY or application default credentials)
+        _tokenizer_model = genai.GenerativeModel('gemini-1.5-flash')
+        print("  -> Initialized Gemini tokenizer")
+    return _tokenizer_model
+
+def count_tokens(text: str) -> int:
+    """Count tokens in text using Gemini's tokenizer."""
+    if not text:
+        return 0
+    try:
+        model = get_tokenizer()
+        result = model.count_tokens(text)
+        return result.total_tokens
+    except Exception as e:
+        # Fallback to character-based estimate if API fails
+        print(f"  -> Warning: Tokenizer API failed ({e}), using estimate")
+        return len(text) // 4  # ~4 chars per token fallback
+
+def chunk_text_by_tokens(text: str, max_tokens: int, overlap_tokens: int) -> list[str]:
+    """
+    Split text into chunks based on actual token count.
+    
+    Uses binary search to find optimal chunk boundaries that respect token limits.
+    """
+    if not text.strip():
+        return []
+    
+    # If text fits in one chunk, return as-is
+    if count_tokens(text) <= max_tokens:
+        return [text]
+    
+    chunks = []
+    start = 0
+    text_len = len(text)
+    
+    while start < text_len:
+        # Binary search for the maximum end position that fits in max_tokens
+        low = start + 1
+        high = min(start + max_tokens * 6, text_len)  # Estimate: ~6 chars/token max
+        best_end = start + 100  # Minimum chunk size
+        
+        while low <= high:
+            mid = (low + high) // 2
+            chunk_candidate = text[start:mid]
+            tokens = count_tokens(chunk_candidate)
+            
+            if tokens <= max_tokens:
+                best_end = mid
+                low = mid + 1
+            else:
+                high = mid - 1
+        
+        # Try to break at a sentence or word boundary
+        chunk_text = text[start:best_end]
+        
+        # Look for natural break points (sentence end, paragraph, word boundary)
+        if best_end < text_len:
+            # Try to find a good break point in the last 20% of the chunk
+            search_start = int(len(chunk_text) * 0.8)
+            break_chars = ['. ', '.\n', '\n\n', '\n', ' ']
+            
+            for break_char in break_chars:
+                last_break = chunk_text.rfind(break_char, search_start)
+                if last_break > search_start:
+                    chunk_text = chunk_text[:last_break + len(break_char)]
+                    best_end = start + len(chunk_text)
+                    break
+        
+        chunks.append(chunk_text.strip())
+        
+        # Move start position, accounting for overlap
+        if overlap_tokens > 0 and best_end < text_len:
+            # Find overlap start position (work backwards from best_end)
+            overlap_chars = overlap_tokens * 4  # Estimate for overlap positioning
+            overlap_start = max(start, best_end - overlap_chars)
+            start = overlap_start
+        else:
+            start = best_end
+        
+        # Safety check to prevent infinite loop
+        if start >= text_len or (len(chunks) > 1 and chunks[-1] == chunks[-2]):
+            break
+    
+    return chunks
 
 # Note: Vertex AI Search automatically generates embeddings during document import.
 # Manual embedding generation is not supported and not needed.
@@ -312,7 +406,7 @@ def create_speaker_aware_chunks(file_path):
             'text': '\n'.join(current_text).strip()
         })
     
-    # Create chunks maintaining speaker context
+    # Create chunks maintaining speaker context (using token-based chunking)
     chunks = []
     chunk_num = 0
     
@@ -320,30 +414,22 @@ def create_speaker_aware_chunks(file_path):
         speaker = section['speaker']
         text = section['text']
         
-        # If section is small enough, keep as single chunk
-        if len(text) <= MAX_CHUNK_SIZE:
-            if text.strip():  # Only add non-empty chunks
+        if not text.strip():
+            continue
+        
+        # Use token-based chunking for this section
+        section_chunks = chunk_text_by_tokens(text, MAX_CHUNK_TOKENS, CHUNK_OVERLAP_TOKENS)
+        
+        for chunk_text in section_chunks:
+            if chunk_text.strip():
                 chunk_num += 1
                 chunks.append(create_chunk_document(
                     file_path=file_path,
                     chunk_num=chunk_num,
-                    content=text,
+                    content=chunk_text,
                     metadata=metadata,
                     speaker=speaker
                 ))
-        else:
-            # Split long sections with overlap
-            for i in range(0, len(text), MAX_CHUNK_SIZE - CHUNK_OVERLAP):
-                chunk_text = text[i:i + MAX_CHUNK_SIZE]
-                if chunk_text.strip():
-                    chunk_num += 1
-                    chunks.append(create_chunk_document(
-                        file_path=file_path,
-                        chunk_num=chunk_num,
-                        content=chunk_text,
-                        metadata=metadata,
-                        speaker=speaker
-                    ))
     
     print(f"     -> Created {len(chunks)} chunks from {len(sections)} speaker sections")
     return chunks
