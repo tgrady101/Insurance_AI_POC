@@ -315,7 +315,7 @@ python src/ai_poc/workflow_1/scripts/financial_report_ingestion.py
 ```
 - Downloads 10-K/10-Q from SEC EDGAR
 - Converts HTML → Markdown
-- Chunks into 8KB segments with 200 char overlap
+- Chunks into ~2,000 token segments (8,000 chars) with 50 token overlap
 - Uploads to Vertex AI Search (embeddings generated automatically)
 
 **Step 2: Download & Process Earnings Calls**
@@ -323,7 +323,7 @@ python src/ai_poc/workflow_1/scripts/financial_report_ingestion.py
 python src/ai_poc/workflow_1/scripts/earnings_call_ingestion.py
 ```
 - Downloads transcripts from API Ninjas
-- Chunks transcripts (2KB chunks, 200 char overlap)
+- Chunks transcripts (~500 tokens / 2,000 chars) with 50 token overlap
 - Uploads to Vertex AI Search (embeddings generated automatically)
 
 **Expected Output**:
@@ -472,11 +472,11 @@ Generated reports include:
 - Automatic grounding reduces hallucination
 - Citations provided automatically
 
-### 5. Chunk Size Strategy with 200 Overlap
+### 5. Chunk Size Strategy with Token-Optimized Overlap
 **Why**: Different document types benefit from different chunk sizes.
-- **SEC filings (8KB)**: Large enough for segment tables and financial statements
-- **Earnings calls (2KB)**: Smaller chunks preserve speaker context and Q&A structure
-- **200 char overlap**: Prevents information loss at boundaries for both types
+- **SEC filings**: 8,000 chars (~2,000 tokens) - large enough for segment tables and financial statements
+- **Earnings calls**: 2,000 chars (~500 tokens) - smaller chunks preserve speaker context and Q&A structure
+- **Overlap**: 200 chars (~50 tokens) - prevents information loss at boundaries for both types
 
 ### 6. Parallel Processing for Company Analysis
 **Why**: Significant performance improvement with independent company data.

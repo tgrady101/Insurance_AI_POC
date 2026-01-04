@@ -9,6 +9,7 @@ from google.cloud import storage
 from markdownify import markdownify as md
 from bs4 import BeautifulSoup
 import re
+import google.generativeai as genai
 
 # --- Configuration ---
 GCP_PROJECT_ID = "project-4b3d3288-7603-4755-899"
@@ -18,9 +19,97 @@ DATA_STORE_LOCATION = "global"
 OUTPUT_DIR = "downloaded_reports"
 CHUNKED_DIR = "chunked_reports"
 
-# Chunking configuration
-MAX_CHUNK_SIZE = 8000  # Characters per chunk for optimal AI context
-CHUNK_OVERLAP = 200    # Character overlap between chunks for context continuity
+# Chunking configuration (token-based using Gemini tokenizer)
+MAX_CHUNK_TOKENS = 2000    # Target tokens per chunk for optimal AI context
+CHUNK_OVERLAP_TOKENS = 50  # Token overlap between chunks for context continuity
+
+# Initialize Gemini model for tokenization
+_tokenizer_model = None
+
+def get_tokenizer():
+    """Get or initialize the Gemini tokenizer model."""
+    global _tokenizer_model
+    if _tokenizer_model is None:
+        _tokenizer_model = genai.GenerativeModel('gemini-1.5-flash')
+        print("  -> Initialized Gemini tokenizer")
+    return _tokenizer_model
+
+def count_tokens(text: str) -> int:
+    """Count tokens in text using Gemini's tokenizer."""
+    if not text:
+        return 0
+    try:
+        model = get_tokenizer()
+        result = model.count_tokens(text)
+        return result.total_tokens
+    except Exception as e:
+        # Fallback to character-based estimate if API fails
+        print(f"  -> Warning: Tokenizer API failed ({e}), using estimate")
+        return len(text) // 4  # ~4 chars per token fallback
+
+def chunk_text_by_tokens(text: str, max_tokens: int, overlap_tokens: int) -> list[str]:
+    """
+    Split text into chunks based on actual token count.
+    Uses binary search to find optimal chunk boundaries that respect token limits.
+    """
+    if not text.strip():
+        return []
+    
+    # If text fits in one chunk, return as-is
+    if count_tokens(text) <= max_tokens:
+        return [text]
+    
+    chunks = []
+    start = 0
+    text_len = len(text)
+    
+    while start < text_len:
+        # Binary search for the maximum end position that fits in max_tokens
+        low = start + 1
+        high = min(start + max_tokens * 6, text_len)  # Estimate: ~6 chars/token max
+        best_end = start + 100  # Minimum chunk size
+        
+        while low <= high:
+            mid = (low + high) // 2
+            chunk_candidate = text[start:mid]
+            tokens = count_tokens(chunk_candidate)
+            
+            if tokens <= max_tokens:
+                best_end = mid
+                low = mid + 1
+            else:
+                high = mid - 1
+        
+        # Try to break at a sentence or word boundary
+        chunk_text = text[start:best_end]
+        
+        # Look for natural break points (sentence end, paragraph, word boundary)
+        if best_end < text_len:
+            search_start = int(len(chunk_text) * 0.8)
+            break_chars = ['. ', '.\n', '\n\n', '\n', ' ']
+            
+            for break_char in break_chars:
+                last_break = chunk_text.rfind(break_char, search_start)
+                if last_break > search_start:
+                    chunk_text = chunk_text[:last_break + len(break_char)]
+                    best_end = start + len(chunk_text)
+                    break
+        
+        chunks.append(chunk_text.strip())
+        
+        # Move start position, accounting for overlap
+        if overlap_tokens > 0 and best_end < text_len:
+            overlap_chars = overlap_tokens * 4  # Estimate for overlap positioning
+            overlap_start = max(start, best_end - overlap_chars)
+            start = overlap_start
+        else:
+            start = best_end
+        
+        # Safety check to prevent infinite loop
+        if start >= text_len or (len(chunks) > 1 and chunks[-1] == chunks[-2]):
+            break
+    
+    return chunks
 
 # Note: Vertex AI Search automatically generates embeddings during document import.
 # Manual embedding generation is not supported and not needed.
@@ -334,20 +423,25 @@ def generate_chunk_summary(content, section_title):
     summary = ' '.join(summary_lines)[:250]
     return f"{section_title}: {summary}" if summary else section_title
 
-def split_large_chunk(content, max_size, overlap):
-    """Split large content into smaller chunks with overlap for context continuity."""
-    if len(content) <= max_size:
+def split_large_chunk(content: str, max_tokens: int = MAX_CHUNK_TOKENS, overlap_tokens: int = CHUNK_OVERLAP_TOKENS) -> list[str]:
+    """
+    Split large content into smaller chunks using token-based sizing with overlap.
+    Uses the Gemini tokenizer for accurate token counting.
+    
+    Args:
+        content: Text content to split
+        max_tokens: Maximum tokens per chunk (default: MAX_CHUNK_TOKENS)
+        overlap_tokens: Token overlap between chunks (default: CHUNK_OVERLAP_TOKENS)
+    
+    Returns:
+        List of text chunks, each under max_tokens
+    """
+    content_tokens = count_tokens(content)
+    if content_tokens <= max_tokens:
         return [content]
     
-    chunks = []
-    start = 0
-    while start < len(content):
-        end = start + max_size
-        chunk = content[start:end]
-        chunks.append(chunk)
-        start = end - overlap
-    
-    return chunks
+    # Use the token-based chunking function
+    return chunk_text_by_tokens(content, max_tokens, overlap_tokens)
 
 def create_document_chunks(file_path):
     """
@@ -422,8 +516,8 @@ def create_document_chunks(file_path):
         
         full_content_md = clean_text(full_content_md)
         
-        # Split if too large
-        sub_chunks = split_large_chunk(full_content_md, MAX_CHUNK_SIZE, CHUNK_OVERLAP)
+        # Split if too large (using token-based chunking)
+        sub_chunks = split_large_chunk(full_content_md, MAX_CHUNK_TOKENS, CHUNK_OVERLAP_TOKENS)
         
         result = []
         for idx, sub_chunk in enumerate(sub_chunks):
@@ -485,8 +579,8 @@ def create_document_chunks(file_path):
         # Add section header for context
         content_text = f"# {section_title}\n\n{section_content_md}"
         
-        # Split if section is too large
-        sub_chunks = split_large_chunk(content_text, MAX_CHUNK_SIZE, CHUNK_OVERLAP)
+        # Split if section is too large (using token-based chunking)
+        sub_chunks = split_large_chunk(content_text, MAX_CHUNK_TOKENS, CHUNK_OVERLAP_TOKENS)
         
         for idx, sub_chunk in enumerate(sub_chunks):
             chunk_suffix = f"_part_{idx+1}" if len(sub_chunks) > 1 else ""
